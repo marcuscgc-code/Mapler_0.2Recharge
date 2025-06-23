@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interpretador Portugol</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
+    textarea { width: 100%; height: 180px; font-family: monospace; font-size: 16px; }
+    button { padding: 0.6rem 1.2rem; font-size: 16px; margin-top: 1rem; }
+    pre { background: #fff; padding: 1rem; border: 1px solid #ccc; margin-top: 1rem; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Interpretador Portugol → AST</h1>
+
+  <textarea id="codigoPortugol">modulo exemplo
+variaveis
+a, b: inteiro;
+inicio
+a <- 10;
+b <- a + 5;
+escrever b;
+fim modulo;</textarea>
+
+  <br>
+  <button id="interpretarBtn">Interpretar</button>
+  <button id="executarBtn">Executar</button>
+
+  <h2>AST:</h2>
+  <pre id="saida"></pre>
+
+  <!-- Saída do interpretador -->
+  <div id="saidaConsole" style="margin-top:20px; padding:10px; background:#f0f0f0; border-radius:5px;"></div>
+
+  <!-- Importar o main.js -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

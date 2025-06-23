@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interpretador Léxico - Portugol</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      padding: 2rem;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+      font-size: 16px;
+      margin-bottom: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 16px;
+    }
+    pre {
+      background: #fff;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Analisador Léxico - Portugol</h1>
+  <textarea id="editor" placeholder="Escreva seu código em Portugol aqui...">variaveis
+  inteiro a
+inicio
+  a <- 10
+  escrever a
+fim</textarea>
+  <br />
+  <button onclick="executar()">Analisar</button>
+
+  <h2>Tokens:</h2>
+  <pre id="saida"></pre>
+
+  <script type="module">
+
+    
+    import { AnalisadorLexico } from './lexico.js';
+    import { EventosService } from './eventosService.js';
+
+    function executar() {
+      const entrada = document.getElementById('editor').value;
+      const saida = document.getElementById('saida');
+
+      const eventos = new EventosService((tipo, erro) => {
+        saida.textContent += `Erro (${tipo}) na linha ${erro.linha}: ${erro.mensagem}\n`;
+      });
+
+      const analisador = new AnalisadorLexico(eventos);
+      const tokens = analisador.scanTokens(entrada);
+
+      saida.textContent = tokens.map(t => t.toString()).join('\n');
+    }
+
+    window.executar = executar;
+
+
+    const eventosService = {
+  notificar: (tipo, mensagem) => {
+    if (tipo === "ESCREVER") {
+      const consoleDiv = document.getElementById('saidaConsole');
+      consoleDiv.innerHTML += mensagem + "<br>";
+    } else if (tipo === "ERRO") {
+      alert("Erro: " + mensagem);
+    }
+  }
+};
+
+const interpretador = new Interpretador(eventosService);
+
+// Função para limpar console de saída
+function limparSaida() {
+  const consoleDiv = document.getElementById('saidaConsole');
+  consoleDiv.innerHTML = '';
+}
+
+document.getElementById('executarBtn').addEventListener('click', () => {
+  limparSaida(); // limpar a saída antes
+  try {
+    const ast = window.astGerado; // Aqui você pega a AST que foi gerada no seu analisador
+    interpretador.interpretar(ast);
+  } catch (e) {
+    alert('Erro ao interpretar: ' + e.message);
+  }
+});
+
+  </script>
+</body>
+</html>
