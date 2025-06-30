@@ -56,6 +56,8 @@ export class AnalisadorLexico {
     }
 
     this.tokens.push(new Token(TiposToken.EOF, '', null, this.linha));
+    console.log("--Lista completa de TOKENS gerado pelo LEXICO--")
+    console.table(this.tokens.map(t => ({ tipo: t.tipo, lexema: t.lexema, literal: t.literal, linha: t.linha })));
     return this.tokens;
   }
 
@@ -88,7 +90,7 @@ export class AnalisadorLexico {
         if (this.comparar('>')) return this.addToken(TiposToken.DIFERENTE);
         return this.addToken(TiposToken.MENOR_QUE);
       case '>':
-        return this.addToken(this.comparar('=') ? TiposToken.MAIOR_IQUAL : TiposToken.MAIOR_QUE);
+        return this.addToken(this.comparar('=') ? TiposToken.MAIOR_IGUAL : TiposToken.MAIOR_QUE);
       case '/':
         if (this.comparar('/')) {
           while (this.checar() !== '\n' && !this.isFinal()) this.avancar();

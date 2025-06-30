@@ -45,10 +45,9 @@ export class Interpretador {
         break;
 
       case "Escreva":
-        for (const expr of declaracao.expressoes) {
-          const valor = this.avaliarExpressao(expr);
-          this.exibirSaida(valor);
-        }
+        const valores = declaracao.expressoes.map(expr => this.avaliarExpressao(expr));
+         const linhaCompleta = valores.join("");
+        this.exibirSaida(linhaCompleta);
         break;
 
       case "Se":
@@ -83,11 +82,21 @@ export class Interpretador {
         this.erro("Declaração desconhecida: " + declaracao.tipo);
     }
   }
-
+//23/06
  executarLeitura(atribuicao) {
   console.log("Executando leitura para:", atribuicao);
+  //23/06
   const valorStr = prompt(`Digite o valor para ${atribuicao.nome.lexema}:`);
-  const valor = Number(valorStr);
+let valor = valorStr;
+
+// Detecta se é esperado um número ou não
+const nomeVar = atribuicao.nome.lexema;
+const tipoVar = this.descobrirTipo(nomeVar);
+
+if (tipoVar === "inteiro" || tipoVar === "real") {
+   const valor = Number(valorStr);
+}
+
 
   if (atribuicao.tipo === "Atribuicao") {
     this.variaveis.set(atribuicao.nome.lexema, valor);
@@ -158,7 +167,7 @@ export class Interpretador {
         this.erro("Expressão desconhecida: " + expr.tipo);
     }
   }
-
+//23/06
   avaliarOperacaoBinaria(operadorTipo, esquerda, direita) {
     switch (operadorTipo) {
       case "MAIS": return esquerda + direita;
@@ -216,4 +225,20 @@ export class Interpretador {
     }
     throw new Error(mensagem);
   }
+
+
+  descobrirTipo(nomeVar) {
+  // Aqui você pode fazer um mapeamento simples, por exemplo
+  // percorrer o this.variaveis ou ter um Map separado com tipos
+  // Neste exemplo, se estiver usando só Map simples, talvez precise ajustar
+  // Isso depende de como você armazena o tipo de cada variável
+  // Exemplo com Map separado:
+  if (this.tipos && this.tipos.has(nomeVar)) {
+    return this.tipos.get(nomeVar);
+  }
+
+  // Se não conseguir descobrir, assume string
+  return "cadeia";
+}
+
 }

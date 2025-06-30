@@ -1,7 +1,7 @@
 import { AnalisadorLexico } from './lexico.js';
 import { AnalisadorSintatico } from './sintatico.js';
 import { EventosService } from './eventosService.js';
-import { Interpretador } from './interpretador.js';
+import { Interpretador } from './Interpretador.js';
 
 
 

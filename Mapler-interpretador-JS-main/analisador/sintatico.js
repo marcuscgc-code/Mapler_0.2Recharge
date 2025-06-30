@@ -96,6 +96,8 @@ anterior() {
 }
 
 avancar() {
+  console.log(`[Parser] Consumindo: ${this.anterior()?.tipo} ('${this.anterior()?.lexema}'), Próximo será: ${this.espiar().tipo} ('${this.espiar().lexema}')`);
+
   if (!this.isFim()) this.index++;
   return this.anterior();
 }
@@ -130,42 +132,43 @@ checar(tipo) {
   //23/06
 declaracaoVariaveis() {
     const nomes = [];
+    const linha = this.espiar().linha;
 
     do {
         const nome = this.consumirToken(TiposToken.IDENTIFICADOR, 'Esperado nome da variável.');
 
         let tamanho = null;
         if (this.checar(TiposToken.ESQ_COLCHETE)) {
-            this.avancar(); // consome [
-            const valor = this.consumirToken(TiposToken.INTEIRO, 'Esperado tamanho inteiro do vetor');
-            tamanho = valor.literal;
-            this.consumirToken(TiposToken.DIR_COLCHETE, 'Esperado "]"');
+            this.avancar();
+            const valorToken = this.consumirToken(TiposToken.INTEIRO, 'Esperado tamanho inteiro do vetor');
+            tamanho = valorToken.literal;
+            this.consumirToken(TiposToken.DIR_COLCHETE, 'Esperado "]" após tamanho do vetor');
         }
 
         nomes.push({ nome, tamanho });
     } while (this.isTokenTypeIgualA(TiposToken.VIRGULA));
 
-    this.consumirToken(TiposToken.DOIS_PONTOS, 'Esperado ":" após o(s) nome(s)');
-    
-    // Consome o tipo de dado (inteiro, real, etc.)
-    const tipo = this.tipoDado();
-    
-    // Verifica se é uma declaração de vetor
+    this.consumirToken(TiposToken.DOIS_PONTOS, 'Esperado ":" após nomes das variáveis');
+
+    let tipo;
     if (this.checar(TiposToken.TIPO_VETOR)) {
-        this.avancar(); // consome 'vetor'
-        this.consumirToken(TiposToken.DE, 'Esperado "de" após "vetor"');
+        this.avancar();
+        tipo = {
+            tipo: 'TipoVetor',
+            tipoBase: this.tipoDado()
+        };
+    } else {
+        tipo = this.tipoDado();
     }
 
-    this.consumirToken(TiposToken.PONTO_VIRGULA, 'Esperado ";" após declaração.');
+    this.consumirToken(TiposToken.PONTO_VIRGULA, 'Esperado ";" após declaração de variável');
 
     const variaveis = nomes.map(entry => 
         new Decl.Var(entry.nome.linha, entry.nome, tipo, entry.tamanho)
     );
 
-    return new Decl.VarDeclaracoes(nomes[0].nome.linha, variaveis);
+    return new Decl.VarDeclaracoes(linha, variaveis);
 }
-
-  
   
   
   
@@ -352,7 +355,7 @@ declaracao() {
     while (
       this.isTokenTypeIgualA(
         TiposToken.MAIOR_QUE,
-        TiposToken.MAIOR_IQUAL,
+        TiposToken.MAIOR_IGUAL,
         TiposToken.MENOR_QUE,
         TiposToken.MENOR_IGUAL
       )
@@ -481,57 +484,49 @@ seDeclaracao() {
     return new Decl.Enquanto(faca.linha, condicao, corpo);
   }
   //23/06
-  paraDeclaracao() {
-    const identificador = this.consumirToken(TiposToken.IDENTIFICADOR, 'Esperado nome da variável de controle');
-    this.consumirToken(TiposToken.DE, 'Esperado "de"');
-    const de = this.expressao();
-    
-    this.consumirToken(TiposToken.ATE, 'Esperado "ate"');
-    const ate = this.expressao();
-    
-    this.consumirToken(TiposToken.PASSO, 'Esperado "passo"');
-    const passo = this.expressao();
-    
-    this.consumirToken(TiposToken.FACA, 'Esperado "faca"');
-    const corpo = new Decl.Bloco(identificador.linha, this.bloco());
-    
-    // Cria a expressão de inicialização (i := valor_inicial)
-    const inicializacao = new Expr.Atribuicao(
-        identificador.linha,
-        identificador,
-        de
-    );
-    
-    // Cria a condição (i <= valor_final)
-    const condicao = new Expr.Binario(
-        identificador.linha,
-        new Expr.Variavel(identificador.linha, identificador),
-        new Token(TiposToken.MENOR_IGUAL, '<=', null, identificador.linha),
-        ate
-    );
-    
-    // Cria o incremento (i := i + passo)
-    const incremento = new Expr.Atribuicao(
-        identificador.linha,
-        identificador,
-        new Expr.Binario(
-            identificador.linha,
-            new Expr.Variavel(identificador.linha, identificador),
-            new Token(TiposToken.MAIS, '+', null, identificador.linha),
-            passo
-        )
-    );
-    
-    this.consumirToken(TiposToken.FIM, 'Esperado "fim para"');
-    this.consumirToken(TiposToken.PARA, 'Esperado "fim para"');
-    this.consumirToken(TiposToken.PONTO_VIRGULA, 'Esperado ";"');
-    
-    return new Decl.Para(identificador.linha, inicializacao, condicao, incremento, corpo);
+  // Substitua a função inteira em sintatico.js
+paraDeclaracao() {
+  const identificador = this.consumirToken(TiposToken.IDENTIFICADOR, 'Esperado nome da variável de controle do laço PARA.');
+  this.consumirToken(TiposToken.DE, 'Esperado "de" após o nome da variável.');
+  const de = this.adicao();
+
+  const linha = this.consumirToken(TiposToken.ATE, 'Esperado "ate" para definir o fim do laço.').linha;
+  const ate = this.adicao();
+
+  let passo = null;
+  // Verifica se a cláusula PASSO existe. Se não, o padrão será 1.
+  if (this.isTokenTypeIgualA(TiposToken.PASSO)) {
+    passo = this.adicao();
+  } else {
+    // Cria um nó literal com o valor 1 para ser o passo padrão.
+    passo = new Expr.Literal(linha, 1, { tipo: TiposToken.INTEIRO, literal: 1, linha });
+  }
+
+  this.consumirToken(TiposToken.FACA, 'Esperado "faca" para iniciar o bloco do laço.');
+  const corpo = new Decl.Bloco(identificador.linha, this.bloco());
+
+  // --- O restante do código transforma o "para" em uma estrutura que o interpretador já entende ---
+  const varRef = new Expr.Variavel(identificador.linha, identificador);
+  const inicial = new Expr.Atribuicao(identificador.linha, identificador, de);
+  const condicao = new Expr.Binario(identificador.linha, varRef, {
+    tipo: TiposToken.MENOR_IGUAL,
+    lexema: '<=',
+  }, ate);
+  const incremento = new Expr.Atribuicao(
+    identificador.linha,
+    identificador,
+    new Expr.Binario(identificador.linha, varRef, {
+      tipo: TiposToken.MAIS,
+      lexema: '+',
+    }, passo)
+  );
+
+  this.consumirToken(TiposToken.FIM, 'Esperado "fim para" para fechar o laço.');
+  this.consumirToken(TiposToken.PARA, 'Esperado "fim para" para fechar o laço.');
+  this.consumirToken(TiposToken.PONTO_VIRGULA, 'Esperado ";" após "fim para".');
+
+  return new Decl.Para(identificador.linha, inicial, condicao, incremento, corpo);
 }
-  
-
-
-
   repitaDeclaracao() {
     const inicio = this.anterior();
     const corpo = new Decl.Bloco(inicio.linha, this.bloco());
