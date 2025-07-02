@@ -1,3 +1,57 @@
+class Ambiente {
+  constructor(enclosing = null) {
+    this.valores = new Map();
+    this.enclosing = enclosing;
+  }
+
+  definir(nome, valor) {
+    this.valores.set(nome, valor);
+  }
+
+  obter(nomeToken) {
+    if (this.valores.has(nomeToken.lexema)) {
+      return this.valores.get(nomeToken.lexema);
+    }
+
+    if (this.enclosing !== null) {
+      return this.enclosing.obter(nomeToken);
+    }
+
+    throw new Error(`Variável não definida '${nomeToken.lexema}'.`);
+  }
+
+  atribuir(nomeToken, valor) {
+    if (this.valores.has(nomeToken.lexema)) {
+      this.valores.set(nomeToken.lexema, valor);
+      return;
+    }
+
+    if (this.enclosing !== null) {
+      this.enclosing.atribuir(nomeToken, valor);
+      return;
+    }
+
+    throw new Error(`Variável não definida '${nomeToken.lexema}'.`);
+  }
+}
+
+class Funcao {
+  constructor(declaracao) {
+    this.declaracao = declaracao;
+  }
+
+  toString() {
+    return `<funcao ${this.declaracao.nome.lexema}>`;
+  }
+}
+
+class Retorno {
+    constructor(valor) {
+        this.valor = valor;
+    }
+}
+
+
 export class Interpretador {
   constructor(eventosService) {
     this.eventosService = eventosService;
