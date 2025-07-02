@@ -5,48 +5,65 @@ export class Interpretador {
   }
 
   interpretar(ast) {
-    this.variaveis.clear(); // ✅ Corrigido aqui
+    this.variaveis.clear();
     try {
-      if (ast.tipo === "Programa") {
-        for (const comando of ast.corpo) {
-          this.executarDeclaracao(comando);
-        }
-      } else if (ast.tipo === "Modulo") {
+      if (ast.tipo === "Modulo") {
         for (const comando of ast.corpo.declaracoes) {
           this.executarDeclaracao(comando);
         }
       } else {
-        this.erro("AST inválido: tipo desconhecido");
+        this.erro("AST inválida: tipo de raiz desconhecido");
       }
     } catch (erro) {
       this.erro(erro.message);
     }
   }
 
+  _criarArrayMultidimensional(dimensoes) {
+    if (dimensoes.length === 0) {
+      return null; // Para variáveis simples
+    }
+
+    const criar = (dims) => {
+      if (dims.length === 1) {
+        return new Array(dims[0]).fill(null);
+      }
+      const tamanho = dims[0];
+      const subDims = dims.slice(1);
+      const arr = new Array(tamanho);
+      for (let i = 0; i < tamanho; i++) {
+        arr[i] = criar(subDims);
+      }
+      return arr;
+    };
+
+    return criar(dimensoes);
+  }
+
   executarDeclaracao(declaracao) {
     if (!declaracao) return;
 
     switch (declaracao.tipo) {
-      //23/06
       case "VarDeclaracoes":
-    for (const variavel of declaracao.variaveis) {
-        if (variavel.tamanho !== undefined && variavel.tamanho !== null) {
-            // Verifica se é um vetor
-            const tamanho = this.avaliarExpressao({ tipo: "Literal", valor: variavel.tamanho });
-            this.variaveis.set(variavel.nome.lexema, new Array(tamanho).fill(null));
-        } else {
-            this.variaveis.set(variavel.nome.lexema, null);
+        for (const variavel of declaracao.variaveis) {
+          const valorInicial = this._criarArrayMultidimensional(variavel.dimensoes);
+          this.variaveis.set(variavel.nome.lexema, valorInicial);
         }
-    }
-    break;
+        break;
 
       case "Expressao":
         this.avaliarExpressao(declaracao.expressao);
         break;
 
       case "Escreva":
-        const valores = declaracao.expressoes.map(expr => this.avaliarExpressao(expr));
-         const linhaCompleta = valores.join("");
+        const valores = declaracao.expressoes.map(expr => {
+            const valorAvaliado = this.avaliarExpressao(expr);
+            // Converte null e undefined para uma representação em string para exibição
+            if (valorAvaliado === null) return "nulo";
+            if (valorAvaliado === undefined) return "indefinido";
+            return valorAvaliado;
+        });
+        const linhaCompleta = valores.join("");
         this.exibirSaida(linhaCompleta);
         break;
 
@@ -76,45 +93,33 @@ export class Interpretador {
         this.executarLeitura(declaracao.atribuicao);
         break;
 
-        
-
       default:
-        this.erro("Declaração desconhecida: " + declaracao.tipo);
+        this.erro(`Declaração desconhecida: ${declaracao.tipo}`);
     }
   }
-//23/06
- executarLeitura(atribuicao) {
-  console.log("Executando leitura para:", atribuicao);
-  //23/06
-  const valorStr = prompt(`Digite o valor para ${atribuicao.nome.lexema}:`);
-let valor = valorStr;
 
-// Detecta se é esperado um número ou não
-const nomeVar = atribuicao.nome.lexema;
-const tipoVar = this.descobrirTipo(nomeVar);
-
-if (tipoVar === "inteiro" || tipoVar === "real") {
-   const valor = Number(valorStr);
-}
-
-
-  if (atribuicao.tipo === "Atribuicao") {
-    this.variaveis.set(atribuicao.nome.lexema, valor);
-  } else if (atribuicao.tipo === "AtribuicaoArray") {
-    const array = this.variaveis.get(atribuicao.nome.lexema);
-    if (!Array.isArray(array)) {
-      this.erro(`Variável ${atribuicao.nome.lexema} não é um vetor`);
+  executarPara(decl) {
+    this.avaliarExpressao(decl.inicializacao);
+    while (this.avaliarExpressao(decl.condicao)) {
+      this.executarDeclaracao(decl.corpo); // Delega a execução do bloco
+      this.avaliarExpressao(decl.incremento);
     }
-    const index = this.avaliarExpressao(atribuicao.index);
-    if (index < 0 || index >= array.length) {
-      this.erro(`Índice fora dos limites do vetor ${atribuicao.nome.lexema}`);
-    }
-    array[index] = valor;
-  } else {
-    this.erro("Leitura inválida: esperada variável ou vetor.");
   }
-}
+  
+  executarSe(decl) {
+    const condicao = this.avaliarExpressao(decl.condicao);
+    const bloco = condicao ? decl.entao : decl.senao;
+    if (bloco && bloco.declaracoes) {
+      this.executarDeclaracao(bloco);
+    }
+  }
 
+  //Adicao 02/07 método faltando em portugol
+   executarEnquanto(decl) {
+    while (this.avaliarExpressao(decl.condicao)) {
+      this.executarDeclaracao(decl.corpo);
+    }
+  }
 
   avaliarExpressao(expr) {
     if (!expr) return null;
@@ -129,34 +134,50 @@ if (tipoVar === "inteiro" || tipoVar === "real") {
       case "Variavel":
         return this.variaveis.get(expr.nome.lexema);
 
-      case "VariavelArray":
-        const array = this.variaveis.get(expr.nome.lexema);
-        if (!Array.isArray(array)) {
-          this.erro(`Variável ${expr.nome.lexema} não é um vetor`);
+      case "VariavelArray": {
+        let alvo = this.variaveis.get(expr.nome.lexema);
+        if (!Array.isArray(alvo)) {
+          this.erro(`Variável '${expr.nome.lexema}' não é um vetor ou matriz.`);
         }
-        const indice = this.avaliarExpressao(expr.index);
-        if (indice < 0 || indice >= array.length) {
-          this.erro(`Índice fora dos limites para vetor ${expr.nome.lexema}`);
+
+        for (let i = 0; i < expr.indices.length; i++) {
+          const indice = this.avaliarExpressao(expr.indices[i]);
+          if (!Array.isArray(alvo) || indice < 0 || indice >= alvo.length) {
+            this.erro(`Índice [${indice}] fora dos limites para a variável '${expr.nome.lexema}'.`);
+          }
+          alvo = alvo[indice];
         }
-        return array[indice];
+        return alvo;
+      }
 
       case "Atribuicao":
         const valor = this.avaliarExpressao(expr.valor);
         this.variaveis.set(expr.nome.lexema, valor);
         return valor;
 
-      case "AtribuicaoArray":
-        const arr = this.variaveis.get(expr.nome.lexema);
-        if (!Array.isArray(arr)) {
-          this.erro(`Variável ${expr.nome.lexema} não é um vetor`);
+      case "AtribuicaoArray": {
+        let alvo = this.variaveis.get(expr.nome.lexema);
+        if (!Array.isArray(alvo)) {
+          this.erro(`Variável '${expr.nome.lexema}' não é um vetor ou matriz.`);
         }
-        const idx = this.avaliarExpressao(expr.index);
-        const val = this.avaliarExpressao(expr.valor);
-        if (idx < 0 || idx >= arr.length) {
-          this.erro(`Índice fora do vetor ${expr.nome.lexema}`);
+
+        for (let i = 0; i < expr.indices.length - 1; i++) {
+          const indice = this.avaliarExpressao(expr.indices[i]);
+          if (!Array.isArray(alvo) || indice < 0 || indice >= alvo.length) {
+            this.erro(`Índice [${indice}] fora dos limites para a variável '${expr.nome.lexema}'.`);
+          }
+          alvo = alvo[indice];
         }
-        arr[idx] = val;
-        return val;
+
+        const ultimoIndice = this.avaliarExpressao(expr.indices[expr.indices.length - 1]);
+        if (!Array.isArray(alvo) || ultimoIndice < 0 || ultimoIndice >= alvo.length) {
+          this.erro(`Índice final [${ultimoIndice}] fora dos limites para '${expr.nome.lexema}'.`);
+        }
+        
+        const valorAtribuir = this.avaliarExpressao(expr.valor);
+        alvo[ultimoIndice] = valorAtribuir;
+        return valorAtribuir;
+      }
 
       case "Binario":
         const esquerda = this.avaliarExpressao(expr.esquerda);
@@ -164,10 +185,10 @@ if (tipoVar === "inteiro" || tipoVar === "real") {
         return this.avaliarOperacaoBinaria(expr.operador.tipo, esquerda, direita);
 
       default:
-        this.erro("Expressão desconhecida: " + expr.tipo);
+        this.erro(`Expressão desconhecida: ${expr.tipo}`);
     }
   }
-//23/06
+  
   avaliarOperacaoBinaria(operadorTipo, esquerda, direita) {
     switch (operadorTipo) {
       case "MAIS": return esquerda + direita;
@@ -181,32 +202,7 @@ if (tipoVar === "inteiro" || tipoVar === "real") {
       case "MAIOR_IGUAL": return esquerda >= direita;
       case "MENOR_IGUAL": return esquerda <= direita;
       default:
-        this.erro("Operador binário não implementado: " + operadorTipo);
-    }
-  }
-  executarPara(decl) {
-  // Executa a atribuição inicial (ex: i := 0)
-  this.avaliarExpressao(decl.inicializacao);
-
-  while (this.avaliarExpressao(decl.condicao)) {
-    // Executa o corpo do laço
-    for (const comando of decl.corpo.declaracoes) {
-      this.executarDeclaracao(comando);
-    }
-
-    // Executa o incremento (ex: i := i + 1)
-    this.avaliarExpressao(decl.incremento);
-  }
-}
-
-
-  executarSe(decl) {
-    const condicao = this.avaliarExpressao(decl.condicao);
-    const bloco = condicao ? decl.entao : decl.senao;
-    if (bloco && bloco.declaracoes) {
-      for (const cmd of bloco.declaracoes) {
-        this.executarDeclaracao(cmd);
-      }
+        this.erro(`Operador binário não implementado: ${operadorTipo}`);
     }
   }
 
@@ -225,20 +221,4 @@ if (tipoVar === "inteiro" || tipoVar === "real") {
     }
     throw new Error(mensagem);
   }
-
-
-  descobrirTipo(nomeVar) {
-  // Aqui você pode fazer um mapeamento simples, por exemplo
-  // percorrer o this.variaveis ou ter um Map separado com tipos
-  // Neste exemplo, se estiver usando só Map simples, talvez precise ajustar
-  // Isso depende de como você armazena o tipo de cada variável
-  // Exemplo com Map separado:
-  if (this.tipos && this.tipos.has(nomeVar)) {
-    return this.tipos.get(nomeVar);
-  }
-
-  // Se não conseguir descobrir, assume string
-  return "cadeia";
-}
-
 }

@@ -130,47 +130,44 @@ checar(tipo) {
 
   // ---------- Regras ----------
   //23/06
+// Em sintatico.js
 declaracaoVariaveis() {
-    const nomes = [];
-    const linha = this.espiar().linha;
+  const nomes = [];
 
-    do {
-        const nome = this.consumirToken(TiposToken.IDENTIFICADOR, 'Esperado nome da variável.');
-
-        let tamanho = null;
-        if (this.checar(TiposToken.ESQ_COLCHETE)) {
-            this.avancar();
-            const valorToken = this.consumirToken(TiposToken.INTEIRO, 'Esperado tamanho inteiro do vetor');
-            tamanho = valorToken.literal;
-            this.consumirToken(TiposToken.DIR_COLCHETE, 'Esperado "]" após tamanho do vetor');
-        }
-
-        nomes.push({ nome, tamanho });
-    } while (this.isTokenTypeIgualA(TiposToken.VIRGULA));
-
-    this.consumirToken(TiposToken.DOIS_PONTOS, 'Esperado ":" após nomes das variáveis');
-
-    let tipo;
-    if (this.checar(TiposToken.TIPO_VETOR)) {
-        this.avancar();
-        tipo = {
-            tipo: 'TipoVetor',
-            tipoBase: this.tipoDado()
-        };
-    } else {
-        tipo = this.tipoDado();
+  do {
+    const nome = this.consumirToken(TiposToken.IDENTIFICADOR, 'Esperado nome da variável.');
+    
+    const dimensoes = []; // MODIFICADO: Inicia um array para as dimensões
+    if (this.checar(TiposToken.ESQ_COLCHETE)) {
+      this.avancar(); // consome [
+      do { // Loop para ler múltiplas dimensões separadas por vírgula
+        const valor = this.consumirToken(TiposToken.INTEIRO, 'Esperado tamanho inteiro da dimensão.');
+        dimensoes.push(valor.literal);
+      } while(this.isTokenTypeIgualA(TiposToken.VIRGULA));
+      
+      this.consumirToken(TiposToken.DIR_COLCHETE, 'Esperado "]" após a(s) dimensão(ões).');
     }
 
-    this.consumirToken(TiposToken.PONTO_VIRGULA, 'Esperado ";" após declaração de variável');
+    nomes.push({ nome, dimensoes }); // MODIFICADO: salva o array de dimensões
+  } while (this.isTokenTypeIgualA(TiposToken.VIRGULA));
 
-    const variaveis = nomes.map(entry => 
-        new Decl.Var(entry.nome.linha, entry.nome, tipo, entry.tamanho)
-    );
+  this.consumirToken(TiposToken.DOIS_PONTOS, 'Esperado ":" após o(s) nome(s)');
+  const tipo = this.tipoDado();
+  this.consumirToken(TiposToken.PONTO_VIRGULA, 'Esperado ";" após declaração.');
 
-    return new Decl.VarDeclaracoes(linha, variaveis);
+  const variaveis = nomes.map(entry => 
+    // MODIFICADO: Passa o array de dimensões para o construtor
+    new Decl.Var(entry.nome.linha, entry.nome, tipo, entry.dimensoes)
+  );
+
+  return new Decl.VarDeclaracoes(nomes[0].nome.linha, variaveis);
 }
   
   
+
+
+
+
   
 //23/06
   tipoDado() {
@@ -304,7 +301,7 @@ declaracao() {
       }
   
       if (expr.tipo === 'VariavelArray') {
-        return new Expr.AtribuicaoArray(expr.linha, expr.nome, expr.index, valor);
+        return new Expr.AtribuicaoArray(expr.linha, expr.nome, expr.indices, valor);
       }
   
       this.erro(operador, 'Atribuição inválida.');
@@ -416,9 +413,12 @@ declaracao() {
     
       // Verifica se é uma variável com índice (array)
       if (this.isTokenTypeIgualA(TiposToken.ESQ_COLCHETE)) {
-        const index = this.ou();
+        const indices = []; //Inicia com um array para os indices
+        do{
+          indices.push(this.ou());
+        }while(this.isTokenTypeIgualA(TiposToken.VIRGULA));
         this.consumirToken(TiposToken.DIR_COLCHETE, 'Esperado "]"');
-        return new Expr.VariavelArray(nome.linha, nome, index);
+        return new Expr.VariavelArray(nome.linha, nome, indices);
       }
     
       return new Expr.Variavel(nome.linha, nome);

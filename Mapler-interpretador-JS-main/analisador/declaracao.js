@@ -17,13 +17,15 @@ export class Fim {
   }
 }
 
+// Em declaracao.js
 export class Var {
-  constructor(linha, nome, tipo, tamanho = null) {
+  // Antes: constructor(linha, nome, tipo, tamanho = null)
+  constructor(linha, nome, tipo, dimensoes = []) { // MODIFICADO
     this.tipo = 'Var';
     this.linha = linha;
     this.nome = nome;
     this.tipoDado = tipo;
-    this.tamanho = tamanho; // ✅ usado para vetores
+    this.dimensoes = dimensoes; // MODIFICADO: agora é um array de tamanhos
   }
 }
 

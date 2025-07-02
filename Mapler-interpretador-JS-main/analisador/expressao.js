@@ -35,13 +35,14 @@ export class Literal {
   }
   
   export class VariavelArray {
-    constructor(linha, nome, index) {
-      this.tipo = 'VariavelArray';
-      this.linha = linha;
-      this.nome = nome;
-      this.index = index;
-    }
+  // Antes: constructor(linha, nome, index)
+  constructor(linha, nome, indices) { // MODIFICADO
+    this.tipo = 'VariavelArray';
+    this.linha = linha;
+    this.nome = nome;
+    this.indices = indices; // MODIFICADO: agora é um array de expressões de índice
   }
+}
   
   export class Atribuicao {
     constructor(linha, nome, valor) {
@@ -53,15 +54,15 @@ export class Literal {
   }
   
   export class AtribuicaoArray {
-    constructor(linha, nome, index, valor) {
-      this.tipo = 'AtribuicaoArray';
-      this.linha = linha;
-      this.nome = nome;
-      this.index = index;
-      this.valor = valor;
-    }
+  // Antes: constructor(linha, nome, index, valor)
+  constructor(linha, nome, indices, valor) { // MODIFICADO
+    this.tipo = 'AtribuicaoArray';
+    this.linha = linha;
+    this.nome = nome;
+    this.indices = indices; // MODIFICADO
+    this.valor = valor;
   }
-  
+}
   export class Grupo {
     constructor(linha, expressao) {
       this.tipo = 'Grupo';
