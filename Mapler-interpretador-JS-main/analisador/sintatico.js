@@ -28,39 +28,41 @@ export class AnalisadorSintatico {
   }
 }
 //23/06
+//02/07
 parseModulo() {
   const nome = this.consumirToken(TiposToken.IDENTIFICADOR, 'Esperado nome do módulo');
   const declaracoes = [];
-  
-  // Seção de variáveis (opcional)
-  if (this.checar(TiposToken.VARIAVEIS)) {
-    this.avancar(); // Consome 'variaveis'
-    
-    while (!this.isFim() && !this.checar(TiposToken.INICIO)) {
+
+  // Seção de variáveis (OPCIONAL)
+  if (this.isTokenTypeIgualA(TiposToken.VARIAVEIS)) {
+    // Analisa APENAS variáveis até encontrar o início das funções ou do bloco principal
+    while (!this.isFim() && !this.checar(TiposToken.INICIO) && !this.checar(TiposToken.FUNCAO)) {
       declaracoes.push(this.declaracaoVariaveis());
     }
   }
+  
+  // Analisa TODAS as declarações de função antes do início
+  while (!this.isFim() && !this.checar(TiposToken.INICIO)) {
+      declaracoes.push(this.declaracao());
+  }
 
-  this.consumirToken(TiposToken.INICIO, 'Esperado "inicio"');
+  this.consumirToken(TiposToken.INICIO, 'Esperado "inicio" após as declarações de variáveis e funções.');
 
-  // Corpo do módulo
+  // Corpo do módulo (após o 'inicio')
   while (!this.isFim() && !this.checar(TiposToken.FIM)) {
     const decl = this.declaracao();
     if (decl !== null) declaracoes.push(decl);
   }
 
-  // Fechamento do módulo - modificado para aceitar apenas "fim"
-  this.consumirToken(TiposToken.FIM, 'Esperado "fim"');
+  this.consumirToken(TiposToken.FIM, 'Esperado "fim modulo"');
+  this.consumirToken(TiposToken.TIPO_MODULO, 'Esperado "modulo"');
   
-  // Remove a verificação de "modulo" após o "fim"
-  // Ponto e vírgula final (opcional)
-  if (this.checar(TiposToken.PONTO_VIRGULA)) {
-    this.avancar();
+  if (this.isTokenTypeIgualA(TiposToken.PONTO_VIRGULA)) {
+    // Opcional
   }
 
   return new Decl.Modulo(nome.linha, nome, new Decl.Bloco(nome.linha, declaracoes));
 }
-
 parseProgramaSimples() {
   const declaracoes = [];
   
