@@ -88,4 +88,15 @@ export class Literal {
       this.direita = direita;
     }
   }
+  // chamador de função exemplo minhaFuncao(5) , resultando em um valor. Classe que representa a chamada
+
+export class Chamada {
+  constructor(linha, callee, parenteses, argumentos) {
+    this.tipo = 'Chamada';
+    this.linha = linha;
+    this.callee = callee; // A expressão que resulta na função a ser chamada (geralmente uma Variavel)
+    this.parenteses = parenteses; // O token ')' para reportar erros
+    this.argumentos = argumentos; // Um array de expressões passadas como argumento
+  }
+}
   

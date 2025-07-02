@@ -39,6 +39,10 @@ export class AnalisadorLexico {
       caractere: TiposToken.TIPO_CARACTERE,
       '..': TiposToken.INTERVALO,
       modulo: TiposToken.TIPO_MODULO,
+      //Adicao de palavras mapeadas em Portugol para os tipos Token
+      funcao: TiposToken.FUNCAO,
+      procedimento: TiposToken.PROCEDIMENTO,
+      retorne: TiposToken.RETORNE,
       vetor: TiposToken.TIPO_VETOR
     };
   }

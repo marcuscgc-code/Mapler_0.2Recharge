@@ -146,6 +146,7 @@ export class ChamadaModulo {
   }
 }
 
+
 // ✅ Exporte tudo junto
 export const Decl = {
   Programa,
@@ -164,4 +165,26 @@ export const Decl = {
   Repita,
   Modulo,
   ChamadaModulo
+
+
 };
+
+export class FuncaoDeclaracao {
+  constructor(linha, nome, parametros, corpo) {
+    this.tipo = 'FuncaoDeclaracao';
+    this.linha = linha;
+    this.nome = nome;
+    this.parametros = parametros;
+    this.corpo = corpo;
+  }
+}
+
+export class Retorne {
+  constructor(linha, palavraChave, valor) {
+    this.tipo = 'Retorne';
+    this.linha = linha;
+    this.palavraChave = palavraChave; // O token 'retorne'
+    this.valor = valor; // A expressão a ser retornada
+  }
+
+}

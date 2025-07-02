@@ -31,7 +31,10 @@ export const TiposToken = {
     CARACTERE: 'CARACTERE',
     INTEIRO: 'INTEIRO',
     REAL: 'REAL',
-  
+    //Funcoes
+    FUNCAO: 'FUNCAO',
+    PROCEDIMENTO: 'PROCEDIMENTO',
+    RETORNE: 'RETORNE',
     // Palavras-chave
     E: 'E',
     OU: 'OU',
