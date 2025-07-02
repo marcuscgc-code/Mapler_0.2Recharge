@@ -162,10 +162,64 @@ declaracaoVariaveis() {
 
   return new Decl.VarDeclaracoes(nomes[0].nome.linha, variaveis);
 }
+  //02/07
+  //metodos auxiliar pra funcao e retorne
+
+funcaoDeclaracao(tipo) { // tipo será "funcao" ou  talves um procedimento
+  const nome = this.consumirToken(TiposToken.IDENTIFICADOR, `Esperado nome do ${tipo}.`);
+  this.consumirToken(TiposToken.ESQ_PARENTESES, "Esperado '(' após o nome.");
+
+  const parametros = [];
+  if (!this.checar(TiposToken.DIR_PARENTESES)) {
+    do {
+      if (parametros.length >= 255) {
+        this.erro(this.espiar(), "Não pode haver mais de 255 parâmetros.");
+      }
+      parametros.push(this.consumirToken(TiposToken.IDENTIFICADOR, "Esperado nome do parâmetro."));
+    } while (this.isTokenTypeIgualA(TiposToken.VIRGULA));
+  }
   
+  this.consumirToken(TiposToken.DIR_PARENTESES, "Esperado ')' após os parâmetros.");
+  
+  // Nota: Uma implementação mais avançada analisaria o tipo de retorno aqui (ex: ": inteiro")
+
+  this.consumirToken(TiposToken.INICIO, "Esperado 'inicio' para começar o corpo da função.");
+  const corpo = new Decl.Bloco(this.anterior().linha, this.bloco());
+
+  this.consumirToken(TiposToken.FIM, `Esperado 'fim' para fechar o ${tipo}.`);
   
 
+  return new Decl.FuncaoDeclaracao(nome.linha, nome, parametros, corpo);
+}
 
+retorneDeclaracao() {
+  const palavraChave = this.anterior();
+  let valor = null;
+
+  // Se o próximo token não for ';', significa que há um valor de retorno.
+  if (!this.checar(TiposToken.PONTO_VIRGULA)) {
+    valor = this.expressao();
+  }
+
+  this.consumirToken(TiposToken.PONTO_VIRGULA, "Esperado ';' após o valor de retorno.");
+  return new Decl.Retorne(palavraChave.linha, palavraChave, valor);
+}
+//Metodo que sabe quando a funcao terminou
+finalizarChamada(callee) {
+  const argumentos = [];
+  if (!this.checar(TiposToken.DIR_PARENTESES)) {
+    do {
+      if (argumentos.length >= 255) {
+        this.erro(this.espiar(), "Não pode haver mais de 255 argumentos.");
+      }
+      argumentos.push(this.expressao());
+    } while (this.isTokenTypeIgualA(TiposToken.VIRGULA));
+  }
+
+  const parenteses = this.consumirToken(TiposToken.DIR_PARENTESES, "Esperado ')' após os argumentos.");
+
+  return new Expr.Chamada(parenteses.linha, callee, parenteses, argumentos);
+}
 
 
   
@@ -195,14 +249,16 @@ declaracaoVariaveis() {
 declaracao() {
     try {
       console.log('Analisando token:', this.espiar());
-      if (this.isTokenTypeIgualA(TiposToken.SE)) return this.seDeclaracao();
-      if (this.isTokenTypeIgualA(TiposToken.PARA)) return this.paraDeclaracao();
-      if (this.isTokenTypeIgualA(TiposToken.ENQUANTO)) return this.enquantoDeclaracao();
-      if (this.isTokenTypeIgualA(TiposToken.REPITA)) return this.repitaDeclaracao();
-      if (this.isTokenTypeIgualA(TiposToken.ESCREVER)) return this.escreverDeclaracao();
-      if (this.isTokenTypeIgualA(TiposToken.LER)) return this.lerDeclaracao();
-  
-      return this.expressaoDeclaracao();
+       if (this.isTokenTypeIgualA(TiposToken.FUNCAO)) return this.funcaoDeclaracao("funcao");
+    if (this.isTokenTypeIgualA(TiposToken.RETORNE)) return this.retorneDeclaracao();
+    if (this.isTokenTypeIgualA(TiposToken.SE)) return this.seDeclaracao();
+    if (this.isTokenTypeIgualA(TiposToken.PARA)) return this.paraDeclaracao();
+    if (this.isTokenTypeIgualA(TiposToken.ENQUANTO)) return this.enquantoDeclaracao();
+    if (this.isTokenTypeIgualA(TiposToken.REPITA)) return this.repitaDeclaracao();
+    if (this.isTokenTypeIgualA(TiposToken.ESCREVER)) return this.escreverDeclaracao();
+    if (this.isTokenTypeIgualA(TiposToken.LER)) return this.lerDeclaracao();
+
+    return this.expressaoDeclaracao();
     } catch (err) {
       this.sincronizar();
       return null;
@@ -410,7 +466,12 @@ declaracao() {
     if (this.isTokenTypeIgualA(TiposToken.IDENTIFICADOR)) {
       const nome = this.anterior();
       console.log("Reconheceu variavel:", nome.lexema);
-    
+      //chamada da funcao
+      //02/07
+      if(this.isTokenTypeIgualA(TiposToken.ESQ_PARENTESES)){
+        return this.finalizarChamada(new Expr.Variavel(nome.linha, nome));
+      }
+
       // Verifica se é uma variável com índice (array)
       if (this.isTokenTypeIgualA(TiposToken.ESQ_COLCHETE)) {
         const indices = []; //Inicia com um array para os indices
