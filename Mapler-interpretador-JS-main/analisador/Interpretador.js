@@ -50,33 +50,36 @@ class Retorno {
 }
 
 // Substitua sua classe Interpretador inteira por esta
-export class Interpretador {
+  //03/7
+  export class Interpretador {
   constructor(eventosService) {
     this.eventosService = eventosService;
     this.ambienteGlobal = new Ambiente();
     this.ambiente = this.ambienteGlobal;
   }
-  //03/7
+
   interpretar(ast) {
+    // Limpa o ambiente global para cada nova execução
+    this.ambienteGlobal = new Ambiente();
+    this.ambiente = this.ambienteGlobal;
+
     try {
-      // Verifica se a AST é um Módulo e se tem um corpo com declarações
       if (ast && ast.tipo === "Modulo" && ast.corpo && Array.isArray(ast.corpo.declaracoes)) {
-          // Itera sobre o array de declarações, que é o correto
           for (const declaracao of ast.corpo.declaracoes) {
               this.executarDeclaracao(declaracao);
           }
       } else if (ast) {
-          // Se a AST existir mas for malformada
           this.erro("AST inválida ou não contém um corpo de declarações executável.");
       }
     } catch (erro) {
       if (erro instanceof Retorno) {
-          // Um 'retorne' no escopo global não faz nada, então ignoramos.
+          // Um 'retorne' no escopo global não faz nada.
       } else {
         this.erro(erro.message);
       }
     }
   }
+
   executarBloco(declaracoes, ambiente) {
     const ambienteAnterior = this.ambiente;
     try {
@@ -106,65 +109,85 @@ export class Interpretador {
     if (!declaracao) return;
 
     switch (declaracao.tipo) {
-      case "FuncaoDeclaracao":
+      case "FuncaoDeclaracao": {
         const funcao = new Funcao(declaracao, this.ambiente);
         this.ambiente.definir(declaracao.nome.lexema, funcao);
         break;
+      }
 
-      case "Retorne":
+      case "Retorne": {
         let valorRetorno = null;
         if (declaracao.valor !== null) {
             valorRetorno = this.avaliarExpressao(declaracao.valor);
         }
         throw new Retorno(valorRetorno);
+      }
         
-      case "VarDeclaracoes":
+      case "VarDeclaracoes": {
         for (const variavel of declaracao.variaveis) {
           const valorInicial = this._criarArrayMultidimensional(variavel.dimensoes);
           this.ambiente.definir(variavel.nome.lexema, valorInicial);
         }
         break;
+      }
 
-      case "Expressao":
+      case "Expressao": {
         this.avaliarExpressao(declaracao.expressao);
         break;
+      }
 
-      case "Escreva":
-        const valores = declaracao.expressoes.map(expr => this.avaliarExpressao(expr));
-        const linhaCompleta = valores.map(v => (v === null ? "nulo" : v)).join("");
-        this.exibirSaida(linhaCompleta);
+      case "Escreva": {
+        const valores = declaracao.expressoes.map(expr => {
+          const v = this.avaliarExpressao(expr);
+          return v === null ? "nulo" : v;
+        });
+        this.exibirSaida(valores.join(""));
         break;
+      }
 
-      case "Se":
+      case "Se": {
         if (this.avaliarExpressao(declaracao.condicao)) {
             this.executarDeclaracao(declaracao.entao);
         } else if (declaracao.senao !== null) {
             this.executarDeclaracao(declaracao.senao);
         }
         break;
+      }
       
-      case "Bloco":
+      case "Bloco": {
           this.executarBloco(declaracao.declaracoes, new Ambiente(this.ambiente));
           break;
+      }
 
-      case "Enquanto":
+      case "Enquanto": {
         while (this.avaliarExpressao(declaracao.condicao)) {
           this.executarDeclaracao(declaracao.corpo);
         }
         break;
+      }
 
-      case "Para":
-        // O escopo do 'para' cria um ambiente próprio
-        const ambientePara = new Ambiente(this.ambiente);
-        this.executarBloco([declaracao.inicializacao], ambientePara);
-        while (this.avaliarExpressao(declaracao.condicao)) {
-          this.executarBloco(declaracao.corpo.declaracoes, new Ambiente(ambientePara));
-          this.avaliarExpressao(declaracao.incremento);
-        }
+      case "Para": {
+        this.executarPara(declaracao);
         break;
+      }
       
       default:
         this.erro(`Declaração desconhecida: ${declaracao.tipo}`);
+    }
+  }
+  
+  executarPara(decl) {
+    // Para laços 'para', o ideal é que a variável do contador tenha seu próprio escopo.
+   this.avaliarExpressao(decl.inicializacao);
+
+    // A condição é uma EXPRESSÃO.
+    while (this.avaliarExpressao(decl.condicao)) {
+      // O corpo é um BLOCO, então usamos executarDeclaracao para ele.
+      // A chamada para um Bloco já cria seu próprio escopo.
+      this.executarDeclaracao(decl.corpo);
+      
+      // O incremento também é uma EXPRESSÃO.
+      this.avaliarExpressao(decl.incremento);
     }
   }
 
@@ -172,7 +195,7 @@ export class Interpretador {
     if (!expr) return null;
 
     switch (expr.tipo) {
-      case "Chamada":
+      case "Chamada": {
         const callee = this.avaliarExpressao(expr.callee);
         const argumentos = expr.argumentos.map(arg => this.avaliarExpressao(arg));
 
@@ -183,8 +206,7 @@ export class Interpretador {
             this.erro(`Esperava ${callee.declaracao.parametros.length} argumentos, mas recebeu ${argumentos.length}.`);
         }
         
-        // Funções usam o ambiente em que foram criadas (closure), não o ambiente da chamada
-        const ambienteFuncao = new Ambiente(callee.ambienteFechado); 
+        const ambienteFuncao = new Ambiente(callee.ambienteFechado);
         for (let i = 0; i < callee.declaracao.parametros.length; i++) {
             ambienteFuncao.definir(callee.declaracao.parametros[i].lexema, argumentos[i]);
         }
@@ -196,7 +218,8 @@ export class Interpretador {
                 return retorno.valor;
             }
         }
-        return null;
+        return null; // Procedimentos retornam nulo
+      }
 
       case "Atribuicao": {
         const valor = this.avaliarExpressao(expr.valor);
@@ -228,10 +251,11 @@ export class Interpretador {
         return alvo;
       }
         
-      case "Binario":
+      case "Binario": {
         const esquerda = this.avaliarExpressao(expr.esquerda);
         const direita = this.avaliarExpressao(expr.direita);
         return this.avaliarOperacaoBinaria(expr.operador.tipo, esquerda, direita);
+      }
         
       case "Literal":
         return expr.valor;
@@ -245,6 +269,7 @@ export class Interpretador {
   }
   
   avaliarOperacaoBinaria(operadorTipo, esquerda, direita) {
+    // ... (esta função não precisa de mudanças)
     switch (operadorTipo) {
       case "MAIS": return esquerda + direita;
       case "MENOS": return esquerda - direita;
