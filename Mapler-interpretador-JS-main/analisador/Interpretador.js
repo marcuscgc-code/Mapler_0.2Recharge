@@ -52,10 +52,25 @@ class Retorno {
 // Substitua sua classe Interpretador inteira por esta
   //03/7
   export class Interpretador {
-  constructor(eventosService) {
+ constructor(eventosService) {
     this.eventosService = eventosService;
     this.ambienteGlobal = new Ambiente();
     this.ambiente = this.ambienteGlobal;
+
+    // --- ADICIONE ESTE BLOCO DE CÓDIGO ---
+    this.funcoesNativas = new Map();
+
+    // A função nativa 'raizq'
+    this.funcoesNativas.set("raizq", {
+      // aridade é o número de parâmetros que a função espera.
+      aridade: 1, 
+      funcao: (argumentos) => {
+          if (typeof argumentos[0] !== 'number') {
+              throw new Error("O argumento para 'raizq' deve ser um número.");
+          }
+          return Math.sqrt(argumentos[0]);
+      }
+    });
   }
 
   interpretar(ast) {
