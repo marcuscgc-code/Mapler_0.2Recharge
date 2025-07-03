@@ -56,21 +56,27 @@ export class Interpretador {
     this.ambienteGlobal = new Ambiente();
     this.ambiente = this.ambienteGlobal;
   }
-
-  interpretar(declaracoes) {
+  //03/7
+  interpretar(ast) {
     try {
-      for (const declaracao of declaracoes) {
-        this.executarDeclaracao(declaracao);
+      // Verifica se a AST é um Módulo e se tem um corpo com declarações
+      if (ast && ast.tipo === "Modulo" && ast.corpo && Array.isArray(ast.corpo.declaracoes)) {
+          // Itera sobre o array de declarações, que é o correto
+          for (const declaracao of ast.corpo.declaracoes) {
+              this.executarDeclaracao(declaracao);
+          }
+      } else if (ast) {
+          // Se a AST existir mas for malformada
+          this.erro("AST inválida ou não contém um corpo de declarações executável.");
       }
     } catch (erro) {
       if (erro instanceof Retorno) {
-          // Um 'retorne' no escopo global não faz nada.
+          // Um 'retorne' no escopo global não faz nada, então ignoramos.
       } else {
         this.erro(erro.message);
       }
     }
   }
-
   executarBloco(declaracoes, ambiente) {
     const ambienteAnterior = this.ambiente;
     try {

@@ -167,7 +167,8 @@ declaracaoVariaveis() {
   //02/07
   //metodos auxiliar pra funcao e retorne
 
-funcaoDeclaracao(tipo) { // tipo será "funcao" ou  talves um procedimento
+
+funcaoDeclaracao(tipo) { // tipo será "funcao" ou "procedimento"
   const nome = this.consumirToken(TiposToken.IDENTIFICADOR, `Esperado nome do ${tipo}.`);
   this.consumirToken(TiposToken.ESQ_PARENTESES, "Esperado '(' após o nome.");
 
@@ -183,13 +184,20 @@ funcaoDeclaracao(tipo) { // tipo será "funcao" ou  talves um procedimento
   
   this.consumirToken(TiposToken.DIR_PARENTESES, "Esperado ')' após os parâmetros.");
   
-  // Nota: Uma implementação mais avançada analisaria o tipo de retorno aqui (ex: ": inteiro")
-
   this.consumirToken(TiposToken.INICIO, "Esperado 'inicio' para começar o corpo da função.");
   const corpo = new Decl.Bloco(this.anterior().linha, this.bloco());
 
   this.consumirToken(TiposToken.FIM, `Esperado 'fim' para fechar o ${tipo}.`);
   
+  // --- LINHA DA CORREÇÃO ---
+  // Precisamos garantir que a palavra que fecha o bloco é a mesma que abriu.
+  if (tipo === 'funcao') {
+    this.consumirToken(TiposToken.FUNCAO, "Esperado 'funcao' para finalizar a declaração.");
+  } else if (tipo === 'procedimento') {
+    // Quando você for implementar 'procedimento', a lógica será aqui
+    this.consumirToken(TiposToken.PROCEDIMENTO, "Esperado 'procedimento' para finalizar a declaração.");
+  }
+  // --- FIM DA CORREÇÃO ---
 
   return new Decl.FuncaoDeclaracao(nome.linha, nome, parametros, corpo);
 }
