@@ -231,7 +231,52 @@ finalizarChamada(callee) {
   return new Expr.Chamada(parenteses.linha, callee, parenteses, argumentos);
 }
 
+//04/07
+casoDeclaracao() {
+  const valor = this.expressao(); // O valor a ser comparado (ex: a variável 'opcao')
+  const ramos = [];
+  let senaoRamo = null;
 
+  // Loop para analisar os ramos 'seja'
+  while (!this.checar(TiposToken.FIM) && !this.checar(TiposToken.SENAO)) {
+    this.consumirToken(TiposToken.SEJA, "Esperado 'seja' para definir um ramo do caso.");
+    
+    const valores = [];
+    // Loop para pegar todos os valores do 'seja' (ex: seja 1, 2, 3:)
+    do {
+      valores.push(this.primario());
+    } while (this.isTokenTypeIgualA(TiposToken.VIRGULA));
+    
+    this.consumirToken(TiposToken.DOIS_PONTOS, "Esperado ':' após o(s) valor(es) do 'seja'.");
+    
+    const declaracoes = [];
+    // Loop para pegar todas as declarações dentro do 'seja'
+    while (
+      !this.checar(TiposToken.FIM) &&
+      !this.checar(TiposToken.SENAO) &&
+      !this.checar(TiposToken.SEJA)
+    ) {
+      declaracoes.push(this.declaracao());
+    }
+    
+    ramos.push(new Decl.CasoRamo(valores, declaracoes));
+  }
+  
+  // Verifica se existe um ramo 'senao'
+  if (this.isTokenTypeIgualA(TiposToken.SENAO)) {
+    this.consumirToken(TiposToken.DOIS_PONTOS, "Esperado ':' após 'senao'.");
+    senaoRamo = [];
+    while (!this.checar(TiposToken.FIM)) {
+      senaoRamo.push(this.declaracao());
+    }
+  }
+
+  this.consumirToken(TiposToken.FIM, "Esperado 'fim caso' para fechar a estrutura.");
+  this.consumirToken(TiposToken.CASO, "Esperado 'caso' para fechar a estrutura 'fim caso'.");
+  this.consumirToken(TiposToken.PONTO_VIRGULA, "Esperado ';' após 'fim caso'.");
+
+  return new Decl.CasoDeclaracao(valor, ramos, senaoRamo);
+}
   
 //23/06
   tipoDado() {
@@ -255,10 +300,11 @@ finalizarChamada(callee) {
 // -------------------------------------
 // Declarações principais (corpo)
 // -------------------------------------
-
+//Para saber quando chamar os metodos
 declaracao() {
     try {
       console.log('Analisando token:', this.espiar());
+      if (this.isTokenTypeIgualA(TiposToken.CASO)) return this.casoDeclaracao();
        if (this.isTokenTypeIgualA(TiposToken.FUNCAO)) return this.funcaoDeclaracao("funcao");
     if (this.isTokenTypeIgualA(TiposToken.RETORNE)) return this.retorneDeclaracao();
     if (this.isTokenTypeIgualA(TiposToken.SE)) return this.seDeclaracao();
