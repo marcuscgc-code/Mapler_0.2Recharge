@@ -20,6 +20,7 @@ export class AnalisadorLexico {
       entao: TiposToken.ENTAO,
       caso: TiposToken.CASO,
       senao: TiposToken.SENAO,
+      seja: TiposToken.SEJA,
       faca: TiposToken.FACA,
       enquanto: TiposToken.ENQUANTO,
       repita: TiposToken.REPITA,

@@ -188,3 +188,20 @@ export class Retorne {
   }
 
 }
+
+export class CasoRamo {
+  constructor(valores, declaracoes) {
+    this.tipo = 'CasoRamo';
+    this.valores = valores; // Array de literais a serem comparados
+    this.declaracoes = declaracoes;
+  }
+}
+
+export class CasoDeclaracao {
+  constructor(valor, ramos, senaoRamo) {
+    this.tipo = 'CasoDeclaracao';
+    this.valor = valor; // A expressão a ser avaliada
+    this.ramos = ramos; // Um array de objetos CasoRamo
+    this.senaoRamo = senaoRamo; // O bloco de declarações do 'senao'
+  }
+}

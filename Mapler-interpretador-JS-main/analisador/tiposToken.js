@@ -45,6 +45,7 @@ export const TiposToken = {
     ENTAO: 'ENTAO',
     CASO: 'CASO',
     SENAO: 'SENAO',
+    SEJA: 'SEJA',
     FACA: 'FACA',
     ENQUANTO: 'ENQUANTO',
     REPITA: 'REPITA',

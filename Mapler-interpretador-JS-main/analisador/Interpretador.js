@@ -211,6 +211,18 @@ class Retorno {
 
     switch (expr.tipo) {
       case "Chamada": {
+        if (expr.callee.tipo === "Variavel" && this.funcoesNativas.has(expr.callee.nome.lexema)) {
+          const funcaoNativa = this.funcoesNativas.get(expr.callee.nome.lexema);
+          const argumentos = expr.argumentos.map(arg => this.avaliarExpressao(arg));
+
+          if (argumentos.length !== funcaoNativa.aridade) {
+            this.erro(`Função nativa '${expr.callee.nome.lexema}' esperava ${funcaoNativa.aridade} argumentos, mas recebeu ${argumentos.length}.`);
+          }
+
+          return funcaoNativa.funcao(argumentos);
+        }
+
+        // Se não for nativa, continua com a lógica para funções definidas pelo usuário
         const callee = this.avaliarExpressao(expr.callee);
         const argumentos = expr.argumentos.map(arg => this.avaliarExpressao(arg));
 
